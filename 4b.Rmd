@@ -1,0 +1,79 @@
+---
+title: "BIOSC1542-4b"
+author: "Sameera Boppana"
+date: "2/7/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+genes <- read.table('zf_counts.txt', header=T, colClasses=c('character', 
+'numeric', 'numeric', 'numeric', 'numeric')) 
+head(genes)
+```
+
+```{r}
+genes$X1kcellRPK <- (genes$X1kcell / genes$Length) * 1000
+genes$dome1RPK <- (genes$dome1/genes$Length) * 1000
+genes$dome2RPK <- (genes$dome2/genes$Length) * 1000
+genes$X1kcellTPM <- (genes$X1kcellRPK / sum(genes$X1kcellRPK )) * 1000000
+genes$dome1TPM <- (genes$dome1RPK / sum(genes$dome1RPK )) * 1000000
+genes$dome2TPM <- (genes$dome2RPK / sum(genes$dome2RPK )) * 1000000
+
+head(genes)
+```
+
+```{r}
+genes$X1kcell_lg_tpm <- log2(genes$X1kcellTPM + 0.5)
+genes$dome1_lg_tpm <- log2(genes$dome1TPM + 0.5)
+genes$dome2_lg_tpm <- log2(genes$dome2TPM + 0.5)
+head(genes)
+```
+
+
+```{r}
+plot(genes$X1kcell_lg_tpm, genes$dome1_lg_tpm)
+```
+
+```{r}
+two_fold_up <- subset(genes, dome1_lg_tpm - X1kcell_lg_tpm > 1) 
+plot(genes$X1kcell_lg_tpm, genes$dome1_lg_tpm)
+points(two_fold_up$X1kcell_lg_tpm, two_fold_up$dome1_lg_tpm, col = 'red')
+```
+
+```{r}
+genes$log_diff <- genes$dome1_lg_tpm - genes$X1kcell_lg_tpm
+
+ENSDARG00000104041 <- subset(genes, Geneid == "ENSDARG00000104041")
+ENSDARG00000104041
+
+ENSDARG00000076272 <- subset(genes, Geneid == 'ENSDARG00000076272')
+ENSDARG00000076272
+
+```
+
+```{r}
+max(genes$log_diff)
+max_fold <- subset(genes, log_diff == 11.05006)
+tmp <- genes[order(-genes$log_diff),]
+tmp
+```
+
+
+```{r}
+two_fold_down <- subset(genes, dome1_lg_tpm - X1kcell_lg_tpm < -1)
+
+length(two_fold_down)
+two_fold_down
+```
+
+
+```{r}
+two_fold_diff <- subset(genes, abs(dome1_lg_tpm - X1kcell_lg_tpm) > 1)
+
+nrow(two_fold_diff)
+```
+

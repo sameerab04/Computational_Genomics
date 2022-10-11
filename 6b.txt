@@ -1,0 +1,142 @@
+---
+title: "Assignment6b"
+author: "Sameera Boppana"
+date: "2/28/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(DESeq2)
+library(gplots)
+library(viridis)
+```
+
+
+```{r}
+uninfected1_orig <- read.table('output1/abundance.tsv', header = T)
+uninfected2_orig <- read.table('output2/abundance.tsv', header = T)
+infected_orig <- read.table('output3/abundance.tsv', header = T)
+
+uninfected1 <- data.frame(uninfected1_orig[,1], uninfected1_orig[,4])
+names(uninfected1)[1] <- "gene_id"
+names(uninfected1)[2] <- "sample1a"
+
+
+uninfected2 <- data.frame(uninfected2_orig[,1], uninfected2_orig[,4])
+names(uninfected2)[1] <- "gene_id"
+names(uninfected2)[2] <- "sample1b"
+
+
+infected <- data.frame(infected_orig[,1], infected_orig[,4])
+names(infected)[1] <- "gene_id"
+names(infected)[2] <- "sample2"
+
+
+intermediate <- merge(uninfected1, uninfected2, by = "gene_id")
+counts <- merge(intermediate, infected, by = "gene_id")
+
+row.names(counts) <- counts$gene_id
+
+counts <- counts[,c(2:4)]
+names(counts) <- c('uninfected1', 'uninfected2', 'infected')
+counts <- round(counts)
+head(counts)
+```
+
+```{r}
+samples <- data.frame('group' = c('uninfected', 'uninfected', 'infected'),
+                      row.names = c('uninfected1', 'uninfected2', 'intected'))
+samples
+```
+
+
+```{r}
+dds <- DESeqDataSetFromMatrix(counts, samples, design = ~ group)
+```
+```{r}
+dds <- DESeq(dds)
+```
+
+```{r}
+uninfected_vs_infected <- results(dds, contrast = c('group', 'uninfected', 'infected'))
+head(uninfected_vs_infected)
+
+infected_vs_uninfected <- results(dds, contrast = c('group', 'infected', 'uninfected'))
+head(infected_vs_uninfected)
+```
+
+```{r}
+infected_over_uninfected <- subset(infected_vs_uninfected, log2FoldChange > 0) 
+head(infected_over_uninfected)
+```
+
+```{r}
+signif_diff_exp <- subset(infected_over_uninfected, padj < 0.05)
+head(signif_diff_exp)
+```
+
+```{r}
+subset(signif_diff_exp, row.names(signif_diff_exp) == 'NM_002038')
+```
+
+
+
+```{r}
+infected_over_uninfected <- data.frame(infected_over_uninfected)
+signif_diff_exp <- data.frame(signif_diff_exp)
+plot(x = infected_over_uninfected$log2FoldChange, y = -log10(infected_over_uninfected$padj), xlab = "log2(infected/uninfected)", ylab = "Significance") + title("Sameera Boppana") + abline(h = -log10(0.05)) + points(x = signif_diff_exp$log2FoldChange, y = -log10(signif_diff_exp$padj), col = "red") + text(x = row.names(signif_diff_exp) == 'NM_002038', "IFI6", col = "blue")
+```
+
+```{r}
+uninfected1_tpm <- data.frame(uninfected1_orig[,1], uninfected1_orig[,5])
+names(uninfected1_tpm)[1] <- "gene_id"
+names(uninfected1_tpm)[2] <- "sample1a"
+
+
+uninfected2_tpm <- data.frame(uninfected2_orig[,1], uninfected2_orig[,5])
+names(uninfected2_tpm)[1] <- "gene_id"
+names(uninfected2_tpm)[2] <- "sample1b"
+
+
+infected_tpm <- data.frame(infected_orig[,1], infected_orig[,5])
+names(infected_tpm)[1] <- "gene_id"
+names(infected_tpm)[2] <- "sample2"
+
+
+intermediate_tpm <- merge(uninfected1_tpm, uninfected2_tpm, by = "gene_id")
+tpm <- merge(intermediate_tpm, infected_tpm, by = "gene_id")
+
+row.names(tpm) <- tpm$gene_id
+
+tpm <- tpm[,c(2:4)]
+names(tpm) <- c('uninfected1', 'uninfected2', 'infected')
+tpm <- round(tpm)
+head(tpm)
+```
+
+```{r}
+tpm_diff_exp <- subset(tpm, row.names(tpm) %in% row.names(signif_diff_exp))
+head(tpm_diff_exp)
+```
+```{r}
+tpm_diff_exp$uninfected1 <- log2(tpm_diff_exp$uninfected1 + 0.5)
+tpm_diff_exp$uninfected2 <- log2(tpm_diff_exp$uninfected2 + 0.5)
+tpm_diff_exp$infected <- log2(tpm_diff_exp$infected + 0.5)
+head(tpm_diff_exp)
+```
+
+
+
+
+
+
+
+```{r}
+par(oma=c(1,1,1,1))
+heatmap.2(as.matrix(tpm_diff_exp), dendrogram = "both", cexCol = 1, symkey = FALSE, symbreaks = FALSE, main = "Sameera Boppana", key = TRUE, density.info = 'none', key.xlab= "log2TPM", trace = "none",col=viridis(50))
+```
+
